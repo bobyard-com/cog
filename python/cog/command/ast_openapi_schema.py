@@ -34,7 +34,7 @@ BASE_SCHEMA = """
             "type": "string"
           },
           "id": { "title": "Id", "type": "string" },
-          "input": { "$ref": "#/components/schemas/Input" },
+          "parameters": { "$ref": "#/components/schemas/Input" },
           "output_file_prefix": {
             "title": "Output File Prefix",
             "type": "string"
@@ -57,29 +57,7 @@ BASE_SCHEMA = """
       },
       "PredictionResponse": {
         "properties": {
-          "completed_at": {
-            "format": "date-time",
-            "title": "Completed At",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "error": { "title": "Error", "type": "string" },
-          "id": { "title": "Id", "type": "string" },
-          "input": { "$ref": "#/components/schemas/Input" },
-          "logs": { "default": "", "title": "Logs", "type": "string" },
-          "metrics": { "title": "Metrics", "type": "object" },
-          "output": { "$ref": "#/components/schemas/Output" },
-          "started_at": {
-            "format": "date-time",
-            "title": "Started At",
-            "type": "string"
-          },
-          "status": { "$ref": "#/components/schemas/Status" },
-          "version": { "title": "Version", "type": "string" }
+          "predictions": { "$ref": "#/components/schemas/Output" },
         },
         "title": "PredictionResponse",
         "type": "object"

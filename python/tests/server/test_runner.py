@@ -57,7 +57,7 @@ def test_prediction_runner(runner):
     request = PredictionRequest(input={"sleep": 0.1})
     _, async_result = runner.predict(request)
     response = async_result.get(timeout=1)
-    assert response.output == "done in 0.1 seconds"
+    assert response.predictions == "done in 0.1 seconds"
     assert response.status == "succeeded"
     assert response.error is None
     assert response.logs == ""
@@ -87,7 +87,7 @@ def test_prediction_runner_called_while_busy_idempotent(runner):
 
     response = async_result.get(timeout=1)
     assert response.id == "abcd1234"
-    assert response.output == "done in 0.1 seconds"
+    assert response.predictions == "done in 0.1 seconds"
     assert response.status == "succeeded"
 
 
@@ -101,7 +101,7 @@ def test_prediction_runner_called_while_busy_idempotent_wrong_id(runner):
 
     response = async_result.get(timeout=1)
     assert response.id == "abcd1234"
-    assert response.output == "done in 0.1 seconds"
+    assert response.predictions == "done in 0.1 seconds"
     assert response.status == "succeeded"
 
 
@@ -112,7 +112,7 @@ def test_prediction_runner_cancel(runner):
     runner.cancel()
 
     response = async_result.get(timeout=1)
-    assert response.output is None
+    assert response.predictions is None
     assert response.status == "canceled"
     assert response.error is None
     assert response.logs == ""
@@ -127,7 +127,7 @@ def test_prediction_runner_cancel_matching_id(runner):
     runner.cancel(prediction_id="abcd1234")
 
     response = async_result.get(timeout=1)
-    assert response.output is None
+    assert response.predictions is None
     assert response.status == "canceled"
 
 
@@ -139,7 +139,7 @@ def test_prediction_runner_cancel_by_mismatched_id(runner):
         runner.cancel(prediction_id="5678efgh")
 
     response = async_result.get(timeout=1)
-    assert response.output == "done in 0.5 seconds"
+    assert response.predictions == "done in 0.5 seconds"
     assert response.status == "succeeded"
 
 
@@ -211,19 +211,19 @@ def test_prediction_event_handler():
     h = PredictionEventHandler(p)
 
     assert p.status == Status.PROCESSING
-    assert p.output is None
+    assert p.predictions is None
     assert p.logs == ""
     assert isinstance(p.started_at, datetime)
 
     h.set_output("giraffes")
-    assert p.output == "giraffes"
+    assert p.predictions == "giraffes"
 
     # cheat and reset output behind event handler's back
-    p.output = None
+    p.predictions = None
     h.set_output([])
     h.append_output("elephant")
     h.append_output("duck")
-    assert p.output == ["elephant", "duck"]
+    assert p.predictions == ["elephant", "duck"]
 
     h.append_logs("running a prediction\n")
     h.append_logs("still running\n")
@@ -261,8 +261,8 @@ def test_prediction_event_handler_webhook_sender(match):
     s.assert_called_once_with(
         match(
             {
-                "input": {"hello": "there"},
-                "output": ["elephant", "duck"],
+                "parameters": {"hello": "there"},
+                "predictions": ["elephant", "duck"],
                 "logs": "running a prediction\nstill running\n",
                 "status": "succeeded",
                 "metrics": {"predict_time": mock.ANY},
@@ -284,7 +284,7 @@ def test_prediction_event_handler_webhook_sender_intermediate(match):
     assert s.call_count == 0
 
     # cheat and reset output behind event handler's back
-    p.output = None
+    p.predictions = None
     s.reset_mock()
     h.set_output([])
     h.append_output("elephant")
@@ -294,7 +294,7 @@ def test_prediction_event_handler_webhook_sender_intermediate(match):
             mock.call(
                 match(
                     {
-                        "output": ["elephant"],
+                        "predictions": ["elephant"],
                     }
                 ),
                 WebhookEvent.OUTPUT,
@@ -302,7 +302,7 @@ def test_prediction_event_handler_webhook_sender_intermediate(match):
             mock.call(
                 match(
                     {
-                        "output": ["elephant", "duck"],
+                        "predictions": ["elephant", "duck"],
                     }
                 ),
                 WebhookEvent.OUTPUT,
@@ -361,10 +361,10 @@ def test_prediction_event_handler_file_uploads():
     h.set_output("Path(to/my/file)")
 
     u.assert_called_once_with("Path(to/my/file)")
-    assert p.output == "http://example.com/output-image.png"
+    assert p.predictions == "http://example.com/output-image.png"
 
     # cheat and reset output behind event handler's back
-    p.output = None
+    p.predictions = None
     u.reset_mock()
 
     u.return_value = []
@@ -377,4 +377,4 @@ def test_prediction_event_handler_file_uploads():
     h.append_output("world.jpg")
 
     u.assert_has_calls([mock.call([]), mock.call("hello.jpg"), mock.call("world.jpg")])
-    assert p.output == ["http://example.com/hello.jpg", "http://example.com/world.jpg"]
+    assert p.predictions == ["http://example.com/hello.jpg", "http://example.com/world.jpg"]

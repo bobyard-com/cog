@@ -27,14 +27,14 @@ def test_setup_healthcheck():
 def test_setup_is_called(client, match):
     resp = client.post("/predictions")
     assert resp.status_code == 200
-    assert resp.json() == match({"status": "succeeded", "output": "bar"})
+    assert resp.json() == match({"status": "succeeded", "predictions": "bar"})
 
 
 @uses_predictor("function.py:predict")
 def test_predict_works_with_functions(client, match):
-    resp = client.post("/predictions", json={"input": {"text": "baz"}})
+    resp = client.post("/predictions", json={"parameters": {"text": "baz"}})
     assert resp.status_code == 200
-    assert resp.json() == match({"status": "succeeded", "output": "hello baz"})
+    assert resp.json() == match({"status": "succeeded", "predictions": "hello baz"})
 
 
 @uses_predictor("openapi_complex_input")
@@ -375,7 +375,7 @@ def test_yielding_strings_from_generator_predictors(client, match):
     resp = client.post("/predictions")
     assert resp.status_code == 200
     assert resp.json() == match(
-        {"status": "succeeded", "output": ["foo", "bar", "baz"]}
+        {"status": "succeeded", "predictions": ["foo", "bar", "baz"]}
     )
 
 
@@ -384,7 +384,7 @@ def test_yielding_strings_from_concatenate_iterator(client, match):
     resp = client.post("/predictions")
     assert resp.status_code == 200
     assert resp.json() == match(
-        {"status": "succeeded", "output": ["foo", "bar", "baz"]}
+        {"status": "succeeded", "predictions": ["foo", "bar", "baz"]}
     )
 
 
@@ -392,13 +392,13 @@ def test_yielding_strings_from_concatenate_iterator(client, match):
 def test_yielding_strings_from_generator_predictors_file_input(client, match):
     resp = client.post(
         "/predictions",
-        json={"input": {"file": "data:text/plain; charset=utf-8;base64,aGVsbG8="}},
+        json={"parameters": {"file": "data:text/plain; charset=utf-8;base64,aGVsbG8="}},
     )
     assert resp.status_code == 200
     assert resp.json() == match(
         {
             "status": "succeeded",
-            "output": ["hello foo", "hello bar", "hello baz"],
+            "predictions": ["hello foo", "hello bar", "hello baz"],
         }
     )
 
@@ -408,7 +408,7 @@ def test_yielding_files_from_generator_predictors(client):
     resp = client.post("/predictions")
 
     assert resp.status_code == 200
-    output = resp.json()["output"]
+    output = resp.json()["predictions"]
 
     def image_color(data_url):
         header, b64data = data_url.split(",", 1)
@@ -425,7 +425,7 @@ def test_prediction_idempotent_endpoint(client, match):
     resp = client.put("/predictions/abcd1234", json={})
     assert resp.status_code == 200
     assert resp.json() == match(
-        {"id": "abcd1234", "status": "succeeded", "output": "foobar"}
+        {"id": "abcd1234", "status": "succeeded", "predictions": "foobar"}
     )
 
 
@@ -439,7 +439,7 @@ def test_prediction_idempotent_endpoint_matched_ids(client, match):
     )
     assert resp.status_code == 200
     assert resp.json() == match(
-        {"id": "abcd1234", "status": "succeeded", "output": "foobar"}
+        {"id": "abcd1234", "status": "succeeded", "predictions": "foobar"}
     )
 
 
@@ -458,12 +458,12 @@ def test_prediction_idempotent_endpoint_mismatched_ids(client, match):
 def test_prediction_idempotent_endpoint_is_idempotent(client, match):
     resp1 = client.put(
         "/predictions/abcd1234",
-        json={"input": {"sleep": 1}},
+        json={"parameters": {"sleep": 1}},
         headers={"Prefer": "respond-async"},
     )
     resp2 = client.put(
         "/predictions/abcd1234",
-        json={"input": {"sleep": 1}},
+        json={"parameters": {"sleep": 1}},
         headers={"Prefer": "respond-async"},
     )
     assert resp1.status_code == 202
@@ -476,12 +476,12 @@ def test_prediction_idempotent_endpoint_is_idempotent(client, match):
 def test_prediction_idempotent_endpoint_conflict(client, match):
     resp1 = client.put(
         "/predictions/abcd1234",
-        json={"input": {"sleep": 1}},
+        json={"parameters": {"sleep": 1}},
         headers={"Prefer": "respond-async"},
     )
     resp2 = client.put(
         "/predictions/5678efgh",
-        json={"input": {"sleep": 1}},
+        json={"parameters": {"sleep": 1}},
         headers={"Prefer": "respond-async"},
     )
     assert resp1.status_code == 202
@@ -501,7 +501,7 @@ def test_asynchronous_prediction_endpoint(client, match):
                 {
                     "id": "12345abcde",
                     "status": "succeeded",
-                    "output": "hello world",
+                    "predictions": "hello world",
                 },
                 strict_match=False,
             )
@@ -513,7 +513,7 @@ def test_asynchronous_prediction_endpoint(client, match):
         "/predictions",
         json={
             "id": "12345abcde",
-            "input": {"text": "hello world"},
+            "parameters": {"text": "hello world"},
             "webhook": "https://example.com/webhook",
             "webhook_events_filter": ["completed"],
         },
@@ -522,7 +522,7 @@ def test_asynchronous_prediction_endpoint(client, match):
     assert resp.status_code == 202
 
     assert resp.json() == match(
-        {"status": "processing", "output": None, "started_at": mock.ANY}
+        {"status": "processing", "predictions": None, "started_at": mock.ANY}
     )
     assert resp.json()["started_at"] is not None
 
@@ -545,7 +545,7 @@ def test_asynchronous_prediction_endpoint_with_trace_context(client, match):
                 {
                     "id": "12345abcde",
                     "status": "succeeded",
-                    "output": "https://example.com/upload/file",
+                    "predictions": "https://example.com/upload/file",
                 },
                 strict_match=False,
             ),
@@ -577,7 +577,7 @@ def test_asynchronous_prediction_endpoint_with_trace_context(client, match):
         "/predictions",
         json={
             "id": "12345abcde",
-            "input": {},
+            "parameters": {},
             "webhook": "https://example.com/webhook",
             "webhook_events_filter": ["completed"],
         },
@@ -590,7 +590,7 @@ def test_asynchronous_prediction_endpoint_with_trace_context(client, match):
     assert resp.status_code == 202
 
     assert resp.json() == match(
-        {"status": "processing", "output": None, "started_at": mock.ANY}
+        {"status": "processing", "predictions": None, "started_at": mock.ANY}
     )
     assert resp.json()["started_at"] is not None
 
@@ -610,7 +610,7 @@ def test_prediction_cancel(client):
 
     resp = client.post(
         "/predictions",
-        json={"id": "123", "input": {"sleep": 1}},
+        json={"id": "123", "parameters": {"sleep": 1}},
         headers={"Prefer": "respond-async"},
     )
     assert resp.status_code == 202
@@ -629,4 +629,4 @@ def test_prediction_cancel(client):
 def test_weights_are_read_from_environment_variables(client, match):
     resp = client.post("/predictions")
     assert resp.status_code == 200
-    assert resp.json() == match({"status": "succeeded", "output": "hello"})
+    assert resp.json() == match({"status": "succeeded", "predictions": "hello"})

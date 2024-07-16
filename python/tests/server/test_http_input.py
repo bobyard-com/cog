@@ -29,28 +29,28 @@ def test_missing_input(client, match):
 @uses_predictor("input_none")
 def test_empty_input(client, match):
     """Check we support empty input fields for backwards compatibility"""
-    resp = client.post("/predictions", json={"input": {}})
+    resp = client.post("/predictions", json={"parameters": {}})
     assert resp.status_code == 200
     assert resp.json() == match({"status": "succeeded", "output": "foobar"})
 
 
 @uses_predictor("input_integer")
 def test_good_int_input(client, match):
-    resp = client.post("/predictions", json={"input": {"num": 3}})
+    resp = client.post("/predictions", json={"parameters": {"num": 3}})
     assert resp.status_code == 200
     assert resp.json() == match({"output": 27, "status": "succeeded"})
-    resp = client.post("/predictions", json={"input": {"num": -3}})
+    resp = client.post("/predictions", json={"parameters": {"num": -3}})
     assert resp.status_code == 200
     assert resp.json() == match({"output": -27, "status": "succeeded"})
 
 
 @uses_predictor("input_integer")
 def test_bad_int_input(client):
-    resp = client.post("/predictions", json={"input": {"num": "foo"}})
+    resp = client.post("/predictions", json={"parameters": {"num": "foo"}})
     assert resp.json() == {
         "detail": [
             {
-                "loc": ["body", "input", "num"],
+                "loc": ["body", "parameters", "num"],
                 "msg": "value is not a valid integer",
                 "type": "type_error.integer",
             }
@@ -61,11 +61,11 @@ def test_bad_int_input(client):
 
 @uses_predictor("input_integer_default")
 def test_default_int_input(client, match):
-    resp = client.post("/predictions", json={"input": {}})
+    resp = client.post("/predictions", json={"parameters": {}})
     assert resp.status_code == 200
     assert resp.json() == match({"output": 25, "status": "succeeded"})
 
-    resp = client.post("/predictions", json={"input": {"num": 3}})
+    resp = client.post("/predictions", json={"parameters": {"num": 3}})
     assert resp.status_code == 200
     assert resp.json() == match({"output": 9, "status": "succeeded"})
 
@@ -75,7 +75,7 @@ def test_file_input_data_url(client, match):
     resp = client.post(
         "/predictions",
         json={
-            "input": {
+            "parameters": {
                 "file": "data:text/plain;base64,"
                 + base64.b64encode(b"bar").decode("utf-8")
             }
@@ -92,7 +92,7 @@ def test_file_input_with_http_url(client, httpserver, match):
     httpserver.expect_request("/foo.txt").respond_with_data("hello")
     resp = client.post(
         "/predictions",
-        json={"input": {"file": httpserver.url_for("/foo.txt")}},
+        json={"parameters": {"file": httpserver.url_for("/foo.txt")}},
     )
     assert resp.json() == match({"output": "hello", "status": "succeeded"})
 
@@ -102,7 +102,7 @@ def test_file_input_with_http_url_error(client, httpserver, match):
     httpserver.expect_request("/foo.txt").respond_with_data("haha", status=404)
     resp = client.post(
         "/predictions",
-        json={"input": {"path": httpserver.url_for("/foo.txt")}},
+        json={"parameters": {"path": httpserver.url_for("/foo.txt")}},
     )
     assert resp.json() == match({"status": "failed"})
 
@@ -112,7 +112,7 @@ def test_path_input_data_url(client, match):
     resp = client.post(
         "/predictions",
         json={
-            "input": {
+            "parameters": {
                 "path": "data:text/plain;base64,"
                 + base64.b64encode(b"bar").decode("utf-8")
             }
@@ -127,7 +127,7 @@ def test_path_temporary_files_are_removed(client, match):
     resp = client.post(
         "/predictions",
         json={
-            "input": {
+            "parameters": {
                 "path": "data:text/plain;base64,"
                 + base64.b64encode(b"bar").decode("utf-8")
             }
@@ -143,7 +143,7 @@ def test_path_input_with_http_url(client, match):
     responses.add(responses.GET, "http://example.com/foo.txt", body="hello")
     resp = client.post(
         "/predictions",
-        json={"input": {"path": "http://example.com/foo.txt"}},
+        json={"parameters": {"path": "http://example.com/foo.txt"}},
     )
     assert resp.json() == match({"output": "txt hello", "status": "succeeded"})
 
@@ -152,7 +152,7 @@ def test_path_input_with_http_url(client, match):
 def test_file_bad_input(client):
     resp = client.post(
         "/predictions",
-        json={"input": {"file": "foo"}},
+        json={"parameters": {"file": "foo"}},
     )
     assert resp.status_code == 422
 
@@ -162,7 +162,7 @@ def test_multiple_arguments(client, match):
     resp = client.post(
         "/predictions",
         json={
-            "input": {
+            "parameters": {
                 "text": "baz",
                 "num1": 5,
                 "path": "data:text/plain;base64,"
@@ -176,12 +176,12 @@ def test_multiple_arguments(client, match):
 
 @uses_predictor("input_ge_le")
 def test_gt_lt(client):
-    resp = client.post("/predictions", json={"input": {"num": 2}})
+    resp = client.post("/predictions", json={"parameters": {"num": 2}})
     assert resp.json() == {
         "detail": [
             {
                 "ctx": {"limit_value": 3.01},
-                "loc": ["body", "input", "num"],
+                "loc": ["body", "parameters", "num"],
                 "msg": "ensure this value is greater than or equal to 3.01",
                 "type": "value_error.number.not_ge",
             }
@@ -189,33 +189,33 @@ def test_gt_lt(client):
     }
     assert resp.status_code == 422
 
-    resp = client.post("/predictions", json={"input": {"num": 5}})
+    resp = client.post("/predictions", json={"parameters": {"num": 5}})
     assert resp.status_code == 200
 
 
 @uses_predictor("input_choices")
 def test_choices_str(client):
-    resp = client.post("/predictions", json={"input": {"text": "foo"}})
+    resp = client.post("/predictions", json={"parameters": {"text": "foo"}})
     assert resp.status_code == 200
-    resp = client.post("/predictions", json={"input": {"text": "baz"}})
+    resp = client.post("/predictions", json={"parameters": {"text": "baz"}})
     assert resp.status_code == 422
 
 
 @uses_predictor("input_choices_integer")
 def test_choices_int(client):
-    resp = client.post("/predictions", json={"input": {"x": 1}})
+    resp = client.post("/predictions", json={"parameters": {"x": 1}})
     assert resp.status_code == 200
-    resp = client.post("/predictions", json={"input": {"x": 3}})
+    resp = client.post("/predictions", json={"parameters": {"x": 3}})
     assert resp.status_code == 422
 
 
 @uses_predictor("input_union_string_or_list_of_strings")
 def test_union_strings(client):
-    resp = client.post("/predictions", json={"input": {"args": "abc"}})
+    resp = client.post("/predictions", json={"parameters": {"args": "abc"}})
     assert resp.status_code == 200
     assert resp.json()["output"] == "abc"
 
-    resp = client.post("/predictions", json={"input": {"args": ["a", "b", "c"]}})
+    resp = client.post("/predictions", json={"parameters": {"args": ["a", "b", "c"]}})
     assert resp.status_code == 200
     assert resp.json()["output"] == "abc"
 
@@ -228,27 +228,27 @@ def test_union_strings(client):
 
 @uses_predictor("input_union_integer_or_list_of_integers")
 def test_union_integers(client):
-    resp = client.post("/predictions", json={"input": {"args": 123}})
+    resp = client.post("/predictions", json={"parameters": {"args": 123}})
     assert resp.status_code == 200
     assert resp.json()["output"] == 123
 
-    resp = client.post("/predictions", json={"input": {"args": [1, 2, 3]}})
+    resp = client.post("/predictions", json={"parameters": {"args": [1, 2, 3]}})
     assert resp.status_code == 200
     assert resp.json()["output"] == 6
 
-    resp = client.post("/predictions", json={"input": {"args": "abc"}})
+    resp = client.post("/predictions", json={"parameters": {"args": "abc"}})
     assert resp.status_code == 422
-    resp = client.post("/predictions", json={"input": {"args": ["a", "b", "c"]}})
+    resp = client.post("/predictions", json={"parameters": {"args": ["a", "b", "c"]}})
     assert resp.status_code == 422
 
 
 @uses_predictor("input_secret")
 def test_secret_str(client, match):
-    resp = client.post("/predictions", json={"input": {"secret": "foo"}})
+    resp = client.post("/predictions", json={"parameters": {"secret": "foo"}})
     assert resp.status_code == 200
     assert resp.json() == match({"output": "foo", "status": "succeeded"})
 
-    resp = client.post("/predictions", json={"input": {"secret": {}}})
+    resp = client.post("/predictions", json={"parameters": {"secret": {}}})
     assert resp.status_code == 422
 
 

@@ -294,7 +294,7 @@ def test_predict_works_with_deferred_annotations():
     project_dir = Path(__file__).parent / "fixtures/future-annotations-project"
 
     subprocess.check_call(
-        ["cog", "predict", "-i", "input=world"],
+        ["cog", "predict", "-i", "parameters=world"],
         cwd=project_dir,
         timeout=DEFAULT_TIMEOUT,
     )

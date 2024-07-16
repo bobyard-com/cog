@@ -39,7 +39,7 @@ class WebhookEvent(str, Enum):
 
 
 class PredictionBaseModel(pydantic.BaseModel, extra=pydantic.Extra.allow):
-    input: t.Dict[str, t.Any]
+    parameters: t.Dict[str, t.Any]
 
 
 class PredictionRequest(PredictionBaseModel):
@@ -60,36 +60,22 @@ class PredictionRequest(PredictionBaseModel):
         # Cog HTTP API allowed input to be omitted (e.g. for models that don't
         # have any inputs). We should consider changing this in future.
         return pydantic.create_model(
-            cls.__name__, __base__=cls, input=(t.Optional[input_type], None)
+            cls.__name__, __base__=cls, parameters=(t.Optional[input_type], None)
         )
 
 
-class PredictionResponse(PredictionBaseModel):
-    output: t.Any
-
-    id: t.Optional[str]
-    version: t.Optional[str]
-
-    created_at: t.Optional[datetime]
-    started_at: t.Optional[datetime]
-    completed_at: t.Optional[datetime]
-
-    logs: str = ""
-    error: t.Optional[str]
-    status: t.Optional[Status]
-
-    metrics: t.Optional[t.Dict[str, t.Any]]
+class PredictionResponse(pydantic.BaseModel):
+    predictions: t.Any
 
     @classmethod
-    def with_types(cls, input_type: t.Type[t.Any], output_type: t.Type[t.Any]) -> t.Any:
+    def with_types(cls, output_type: t.Type[t.Any]) -> t.Any:
         # [compat] Input is implicitly optional -- previous versions of the
         # Cog HTTP API allowed input to be omitted (e.g. for models that don't
         # have any inputs). We should consider changing this in future.
         return pydantic.create_model(
             cls.__name__,
             __base__=cls,
-            input=(t.Optional[input_type], None),
-            output=(output_type, None),
+            predictions=(output_type, None),
         )
 
 

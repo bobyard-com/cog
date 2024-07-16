@@ -145,7 +145,7 @@ def create_app(
         pass
 
     PredictionResponse = schema.PredictionResponse.with_types(
-        input_type=InputType, output_type=OutputType
+        output_type=OutputType
     )
 
     http_semaphore = asyncio.Semaphore(threads)
@@ -344,11 +344,11 @@ def create_app(
         # with empty input. This will throw a ValidationError if that's not
         # possible.
         if request is None:
-            request = PredictionRequest(input={})
+            request = PredictionRequest(parameters={})
         # [compat] If body is supplied but input is None, set it to an empty
         # dictionary so that later code can be simpler.
-        if request.input is None:
-            request.input = {}
+        if request.parameters is None:
+            request.parameters = {}
 
         try:
             # For now, we only ask PredictionRunner to handle file uploads for
@@ -373,8 +373,8 @@ def create_app(
             raise HTTPException(status_code=500, detail=str(e)) from e
 
         response_object = response.dict()
-        response_object["output"] = upload_files(
-            response_object["output"],
+        response_object["predictions"] = upload_files(
+            response_object["predictions"],
             upload_file=lambda fh: upload_file(fh, request.output_file_prefix),  # type: ignore
         )
 
