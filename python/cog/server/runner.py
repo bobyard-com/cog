@@ -388,7 +388,7 @@ def _predict(
     initial_prediction = request.dict()
 
     output_type = None
-    input_dict = initial_prediction["parameters"]
+    input_dict = initial_prediction["input"]  # do not touch
 
     for k, v in input_dict.items():
         try:

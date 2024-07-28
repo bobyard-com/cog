@@ -29,7 +29,7 @@ type Request struct {
 
 type Response struct {
 	Status status       `json:"status"`
-	Output *interface{} `json:"output"`
+	Output *interface{} `json:"predictions"`
 	Error  string       `json:"error"`
 }
 
