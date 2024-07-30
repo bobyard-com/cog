@@ -10,7 +10,7 @@ var (
 	BuildTime             = "none"
 	Debug                 = false
 	ProfilingEnabled      = false
-	StartupTimeout        = 5 * time.Minute
+	StartupTimeout        = 35 * time.Minute
 	ConfigFilename        = "cog.yaml"
 	ReplicateRegistryHost = "r8.im"
 	ReplicateWebsiteHost  = "replicate.com"
